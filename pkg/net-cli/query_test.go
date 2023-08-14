@@ -73,3 +73,28 @@ func TestGetRequest(t *testing.T) {
     }
 }
 
+func TestPutRequest(t *testing.T) {
+    testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(`{"status": 200, "Data": "Response data"}`))
+    })
+    setupMockServer(testHandler)
+    defer teardownMockServer()
+
+    client := netcli.NewDefaultHTTPClient()
+
+    payload := []byte(`{"key": "value"}`)
+    response, err := client.PutRequest(context.Background(), mockServerURL, payload)
+    if err != nil {
+        t.Fatalf("Error sending PUT request: %v", err)
+    }
+
+    // Verify the response fields
+    if response.Status == nil || *response.Status != 200 {
+        t.Errorf("Expected status code 200, got: %v", response.Status)
+    }
+    if response.Data != "Response data" {
+        t.Errorf("Expected data 'Response data', got: %v", response.Data)
+    }
+}

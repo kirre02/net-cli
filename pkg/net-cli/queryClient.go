@@ -8,7 +8,9 @@ import (
 type QueryClient interface {
     GetRequest(ctx context.Context, url string) (*HTTPResponse, error)
     PostRequest(ctx context.Context, url string, payload []byte) (*HTTPResponse, error)
+    PutRequest(ctx context.Context, url string, payload []byte) (*HTTPResponse, error)
 }
+
 
 type DefaultHTTPClient struct {
     Timeout  time.Duration // Maximum time for the HTTP request to complete

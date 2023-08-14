@@ -65,3 +65,30 @@ func (c DefaultHTTPClient) PostRequest( ctx context.Context, url string, payload
 
     return &resBody, nil
 }
+
+func (c *DefaultHTTPClient) PutRequest( ctx context.Context, url string, payload []byte ) (*HTTPResponse, error) {
+  client := &http.Client{
+    Timeout: c.Timeout,
+  }
+
+  req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(payload))
+  if err != nil {
+    return nil, err
+  }
+  req.Header.Set("User-Agent", c.UserAgent)
+  req.Header.Set("Content-Type", "application/json")
+
+  res, err := client.Do(req)
+  if err != nil {
+    return nil, err
+  }
+
+  defer res.Body.Close()
+
+  var resBody HTTPResponse
+
+  err = json.NewDecoder(res.Body).Decode(&resBody)
+
+
+  return &resBody, nil
+}
