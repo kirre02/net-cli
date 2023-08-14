@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kirre02/net-cli/constants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -16,17 +17,13 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "net-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Short: "A simple CLI tool for http calls",
 	Run: func(cmd *cobra.Command, args []string) {
-        fmt.Println("Welcome to net-cli")
+        showVersion, _ := cmd.Flags().GetBool("version")
+        if showVersion {
+            fmt.Printf("version %s\n", constants.AppVersion)
+            return
+        }
     },
 }
 
@@ -42,8 +39,8 @@ func Execute() {
 func init() {
     cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is /net-cli.json)")
-
-	// Cobra also supports local flags, which will only run
+    rootCmd.PersistentFlags().BoolP("version", "v", false, "Print the version number") 
+    // Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

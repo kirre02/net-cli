@@ -17,3 +17,4 @@ type HTTPError struct {
 func (e HTTPError) Error() string {
     return fmt.Sprintf("HTTP Error: %d - %s. cause %v", e.Status, e.Message, e.Cause)
 }
+

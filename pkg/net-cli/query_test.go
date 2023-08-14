@@ -1,17 +1,17 @@
 package netcli_test
 
 import (
-	"net/http"
-	"net/http/httptest"
     "testing"
-	netcli "github.com/kirre02/net-cli/pkg/net-cli"
+    "context"
+    "net/http"
+    "net/http/httptest"
+    netcli "github.com/kirre02/net-cli/pkg/net-cli"
 )
 
-
 var (
-    testHandler http.Handler
-    testMockServer *httptest.Server
-    mockServerURL string 
+    testHandler     http.Handler
+    testMockServer  *httptest.Server
+    mockServerURL   string
 )
 
 func setupMockServer(handler http.Handler) {
@@ -23,7 +23,7 @@ func teardownMockServer() {
     testMockServer.Close()
 }
 
-func TestSendPostRequest(t *testing.T) {
+func TestPostRequest(t *testing.T) {
     testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusOK)
@@ -32,7 +32,10 @@ func TestSendPostRequest(t *testing.T) {
     setupMockServer(testHandler)
     defer teardownMockServer()
 
-    response, err := netcli.PostRequest(mockServerURL, []byte(`{"key": "value"}`))
+    client := netcli.NewDefaultHTTPClient()
+
+    payload := []byte(`{"key": "value"}`)
+    response, err := client.PostRequest(context.Background(), mockServerURL, payload)
     if err != nil {
         t.Fatalf("Error sending POST request: %v", err)
     }
@@ -44,7 +47,6 @@ func TestSendPostRequest(t *testing.T) {
     if response.Data != "Response data" {
         t.Errorf("Expected data 'Response data', got: %v", response.Data)
     }
-
 }
 
 func TestGetRequest(t *testing.T) {
@@ -56,7 +58,9 @@ func TestGetRequest(t *testing.T) {
     setupMockServer(testHandler)
     defer teardownMockServer()
 
-    response, err := netcli.GetRequest(mockServerURL)
+    client := netcli.NewDefaultHTTPClient()
+
+    response, err := client.GetRequest(context.Background(), mockServerURL)
     if err != nil {
         t.Fatalf("Error sending GET request: %v", err)
     }
@@ -68,3 +72,4 @@ func TestGetRequest(t *testing.T) {
         t.Errorf("Expected data 'Response data', got: %v", response.Data)
     }
 }
+

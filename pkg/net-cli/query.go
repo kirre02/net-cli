@@ -2,46 +2,66 @@ package netcli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
-func GetRequest(url string) (*HTTPResponse, error) {
-    response, err := http.Get(url)
-    if err != nil {
-        return nil, fmt.Errorf("GET request failed: %v", err)
-    }
-    
-    defer response.Body.Close()
 
-    var responseBody HTTPResponse
-
-    err = json.NewDecoder(response.Body).Decode(&responseBody)
-    if err != nil {
-        return nil, fmt.Errorf("Error decoding JSON: %v", err)
+func (c DefaultHTTPClient) GetRequest(ctx context.Context, url string) (*HTTPResponse, error) {
+    client := &http.Client{
+        Timeout: c.Timeout,
     }
 
-    return &responseBody, nil
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+    if err != nil {
+        return nil, err
+    }
+
+    req.Header.Set("User-Agent", c.UserAgent)
+
+    res, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    var resBody HTTPResponse
+    err = json.NewDecoder(res.Body).Decode(&resBody)
+    if err != nil {
+        return nil, err
+    }
+
+    return &resBody, nil
 }
 
-func PostRequest(url string, payload []byte) (*HTTPResponse, error) {
-    resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
+func (c DefaultHTTPClient) PostRequest( ctx context.Context, url string, payload []byte) (*HTTPResponse, error) {
+    client := &http.Client{
+        Timeout: c.Timeout,
+    }
+ 
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
+    if err != nil {
+        return nil, err
+    }
+    
+    req.Header.Set("User-Agent", c.UserAgent)
+    req.Header.Set("Content-Type", "application/json")
+
+    res, err := client.Do(req)
     if err != nil {
         return nil, err
     }
 
-    defer resp.Body.Close()
+    defer res.Body.Close()
 
-    var response HTTPResponse
+    var resBody HTTPResponse
 
-    if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+    err = json.NewDecoder(res.Body).Decode(&resBody)
+    if err != nil {
         return nil, err
     }
 
-    if response.Error != nil {
-        return nil, fmt.Errorf("Error in response: %d - %s", response.Error.Status, response.Error.Message)
-    }
-
-    return &response, nil
+    return &resBody, nil
 }
