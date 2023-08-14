@@ -5,7 +5,7 @@ jobs:
   build:
     strategy:
       matrix:
-        go-version: ["1.20"]
+        go-version: [1.20]
         os: [ubuntu-latest, macos-latest]
     runs-on: "${{ matrix.os }}"
     env:
@@ -14,7 +14,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version:"${{ matrix.go-version }}"
+          go-version:${{ matrix.go-version }}
 
       - name: Checkout code
         uses: actions/checkout@v2
