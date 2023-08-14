@@ -41,7 +41,7 @@ func Execute() {
 
 func init() {
     cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/net-cli.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is /net-cli.json)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -51,6 +51,7 @@ func init() {
 func initConfig() {
     if cfgFile != "" {
         viper.SetConfigFile(cfgFile)
+        viper.SetConfigType("json")
     if err := viper.ReadInConfig(); err != nil {
 			fmt.Printf("Error reading config file: %s\n", err)
 			os.Exit(1)
