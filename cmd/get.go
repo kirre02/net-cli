@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	netcli "github.com/kirre02/net-cli/pkg/net-cli"
@@ -26,18 +27,20 @@ var getCmd = &cobra.Command{
 			url = viper.GetString("url")
 		}
 
-        response, err := netcli.GetRequest(url)
+        client := netcli.NewDefaultHTTPClient()
+        
+        res, err := client.GetRequest(context.Background(), url)
         if err != nil {
-            fmt.Printf("Error: %v\n", err)
+            fmt.Printf("Error sending GET request: %v\n", err)
             return
         }
 
-        if response.Error != nil {
-            fmt.Printf("Error: %d - %s\n", response.Error.Status, response.Error.Message)
+        if res.Error != nil {
+            fmt.Printf("Error: %d - %s\n", res.Error.Status, res.Error.Message)
             return
         }
 
-        fmt.Printf("Response:\n%s\n", response.Data)
+        fmt.Printf("Response:\n%s\n", res.Data)
     },
 }
 

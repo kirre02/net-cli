@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -19,7 +20,7 @@ var postCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         payloadData := viper.GetStringMapString("payload")
 
-        payloadBytes, err := json.Marshal(payloadData)
+        payload, err := json.Marshal(payloadData)
         if err != nil {
             return err
         }
@@ -34,13 +35,15 @@ var postCmd = &cobra.Command{
 			url = viper.GetString("url")
 		}
 
-        response, err := netcli.PostRequest(url, payloadBytes)
+        client := netcli.NewDefaultHTTPClient()
+        // Send the POST request
+        res, err := client.PostRequest(context.Background(), url, payload)
         if err != nil {
             return err
         }
 
-        fmt.Printf("Response Status: %d\n", *response.Status)
-        fmt.Printf("Response Data: %s\n", response.Data)
+        fmt.Printf("Response Status: %d\n", *res.Status)
+        fmt.Printf("Response Data: %s\n", res.Data)
 
         return nil
     },
