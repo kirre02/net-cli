@@ -60,7 +60,7 @@ func (c DefaultHTTPClient) PostRequest(ctx context.Context, url string, payload 
 		return nil, err
 	}
 
-	return &resBody, nil
+	return resBody, nil
 }
 
 func (c *DefaultHTTPClient) PutRequest(ctx context.Context, url string, payload []byte) (interface{}, error) {
@@ -89,5 +89,5 @@ func (c *DefaultHTTPClient) PutRequest(ctx context.Context, url string, payload 
 		return nil, err
 	}
 
-	return &resBody, nil
+	return resBody, nil
 }

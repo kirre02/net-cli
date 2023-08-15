@@ -7,7 +7,7 @@ import (
 
 type QueryClient interface {
 	GetRequest(ctx context.Context, url string) (interface{}, error)
-	PostRequest(ctx context.Context, url string, payload []byte) (interface{}, error)
+	PostRequest(ctx context.Context, url string, payload []byte) ([]byte, error)
 	PutRequest(ctx context.Context, url string, payload []byte) (interface{}, error)
 }
 
