@@ -1,11 +1,10 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
-  "context"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -18,17 +17,17 @@ import (
 var putCmd = &cobra.Command{
 	Use:   "put",
 	Short: "A brief description of your command",
-  RunE: func(cmd *cobra.Command, args []string) error {
-        payloadData := viper.GetStringMapString("payload")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		payloadData := viper.GetStringMapString("payload")
 
-        payload, err := json.Marshal(payloadData)
-        if err != nil {
-            return err
-        }
+		payload, err := json.Marshal(payloadData)
+		if err != nil {
+			return err
+		}
 
-        var url string
+		var url string
 
-        // Check if URL is provided as an argument
+		// Check if URL is provided as an argument
 		if len(args) == 1 {
 			url = args[0]
 		} else {
@@ -36,18 +35,25 @@ var putCmd = &cobra.Command{
 			url = viper.GetString("url")
 		}
 
-        client := netcli.NewDefaultHTTPClient()
-        // Send the POST request
-        res, err := client.PutRequest(context.Background(), url, payload)
-        if err != nil {
-            return err
-        }
+		client := netcli.NewDefaultHTTPClient()
+		// Send the POST request
+		res, err := client.PutRequest(context.Background(), url, payload)
+		if err != nil {
+			return err
+		}
 
-        fmt.Printf("Response Status: %d\n", *res.Status)
-        fmt.Printf("Response Data: %s\n", res.Data)
+		// Convert the response to JSON-formatted string with indentation
+		responseJSON, err := json.MarshalIndent(res, "", "  ")
+		if err != nil {
+			fmt.Printf("Error marshaling response to JSON: %v\n", err)
+			return err
+		}
 
-        return nil
-    },
+		// Print the JSON-formatted response
+		fmt.Printf("Response:\n%s\n", responseJSON)
+
+		return nil
+	},
 }
 
 func init() {

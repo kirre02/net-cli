@@ -41,9 +41,15 @@ var postCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		// Convert the response to JSON-formatted string with indentation
+		responseJSON, err := json.MarshalIndent(res, "", "  ")
+		if err != nil {
+			fmt.Printf("Error marshaling response to JSON: %v\n", err)
+			return err
+		}
 
-		fmt.Printf("Response Status: %d\n", *res.Status)
-		fmt.Printf("Response Data: %s\n", res.Data)
+		// Print the JSON-formatted response
+		fmt.Printf("Response:\n%s\n", responseJSON)
 
 		return nil
 	},
