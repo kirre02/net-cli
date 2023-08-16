@@ -7,88 +7,87 @@ import (
 	"net/http"
 )
 
+func (c *DefaultHTTPClient) GetRequest(ctx context.Context, url string) (interface{}, error) {
+	client := &http.Client{
+		Timeout: c.Timeout,
+	}
 
-func (c DefaultHTTPClient) GetRequest(ctx context.Context, url string) (*HTTPResponse, error) {
-    client := &http.Client{
-        Timeout: c.Timeout,
-    }
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
 
-    req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-    if err != nil {
-        return nil, err
-    }
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
 
-    req.Header.Set("User-Agent", c.UserAgent)
+	var responseBody interface{}
+	err = json.NewDecoder(response.Body).Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
 
-    res, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer res.Body.Close()
-
-    var resBody HTTPResponse
-    err = json.NewDecoder(res.Body).Decode(&resBody)
-    if err != nil {
-        return nil, err
-    }
-
-    return &resBody, nil
+	return responseBody, nil
 }
 
-func (c DefaultHTTPClient) PostRequest( ctx context.Context, url string, payload []byte) (*HTTPResponse, error) {
-    client := &http.Client{
-        Timeout: c.Timeout,
-    }
- 
+func (c DefaultHTTPClient) PostRequest(ctx context.Context, url string, payload []byte) (interface{}, error) {
+	client := &http.Client{
+		Timeout: c.Timeout,
+	}
 
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
-    if err != nil {
-        return nil, err
-    }
-    
-    req.Header.Set("User-Agent", c.UserAgent)
-    req.Header.Set("Content-Type", "application/json")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
 
-    res, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Content-Type", "application/json")
 
-    defer res.Body.Close()
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
-    var resBody HTTPResponse
+	defer res.Body.Close()
 
-    err = json.NewDecoder(res.Body).Decode(&resBody)
-    if err != nil {
-        return nil, err
-    }
+	var resBody interface{}
 
-    return &resBody, nil
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return resBody, nil
 }
 
-func (c *DefaultHTTPClient) PutRequest( ctx context.Context, url string, payload []byte ) (*HTTPResponse, error) {
-  client := &http.Client{
-    Timeout: c.Timeout,
-  }
+func (c *DefaultHTTPClient) PutRequest(ctx context.Context, url string, payload []byte) (interface{}, error) {
+	client := &http.Client{
+		Timeout: c.Timeout,
+	}
 
-  req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(payload))
-  if err != nil {
-    return nil, err
-  }
-  req.Header.Set("User-Agent", c.UserAgent)
-  req.Header.Set("Content-Type", "application/json")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Content-Type", "application/json")
 
-  res, err := client.Do(req)
-  if err != nil {
-    return nil, err
-  }
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
-  defer res.Body.Close()
+	defer res.Body.Close()
 
-  var resBody HTTPResponse
+	var resBody interface{}
 
-  err = json.NewDecoder(res.Body).Decode(&resBody)
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	if err != nil {
+		return nil, err
+	}
 
-
-  return &resBody, nil
+	return resBody, nil
 }
