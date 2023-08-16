@@ -130,3 +130,39 @@ func TestPutRequest(t *testing.T) {
 		}
 	}
 }
+
+func TestDeleteRequest(t *testing.T) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("Expected DELETE request, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status": 200, "message": "Deleted successfully"}`))
+	})
+	setupMockServer(testHandler)
+	defer teardownMockServer()
+
+	client := netcli.NewDefaultHTTPClient()
+
+	response, err := client.DeleteRequest(context.Background(), mockServerURL)
+	if err != nil {
+		t.Fatalf("Error sending DELETE request: %v", err)
+	}
+
+	// Validate the response type
+	responseObject, ok := response.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Unexpected response type: %T", response)
+	}
+
+	// Validate specific fields in the response object
+	message, messageExists := responseObject["message"].(string)
+	if !messageExists {
+		t.Errorf("Expected 'message' key in response")
+	} else {
+		if message != "Deleted successfully" {
+			t.Errorf("Expected message 'Deleted successfully', got: %v", message)
+		}
+	}
+}

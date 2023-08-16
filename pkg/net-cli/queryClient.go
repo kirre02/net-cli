@@ -7,8 +7,9 @@ import (
 
 type QueryClient interface {
 	GetRequest(ctx context.Context, url string) (interface{}, error)
-	PostRequest(ctx context.Context, url string, payload []byte) ([]byte, error)
-	PutRequest(ctx context.Context, url string, payload []byte) (interface{}, error)
+	DeleteRequest(ctx context.Context, url string) (interface{}, error)
+	PostRequest(ctx context.Context, url string, payload []byte) (interface{}, error)
+    PutRequest(ctx context.Context, url string, payload []byte) (interface{}, error)
 }
 
 type DefaultHTTPClient struct {
