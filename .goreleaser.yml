@@ -22,7 +22,7 @@ brews:
     homepage: https://github.com/kirre02/net-cli
     tap:
       owner: kirre02
-      name: homebrew-net-cli
+      name: net-cli
     commit_author:
       name: kirre02
 
