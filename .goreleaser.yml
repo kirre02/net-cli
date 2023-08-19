@@ -20,11 +20,11 @@ universal_binaries:
 brews:
   - name: net-cli
     homepage: https://github.com/kirre02/net-cli
-    tap:
-      owner: kirre02
-      name: net-cli
     commit_author:
       name: kirre02
-
+    repository:
+      owner: kirre02
+      name: homebrew-tap
+      branch: main
 checksum:
   name_template: "checksums.txt"
