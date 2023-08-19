@@ -34,3 +34,34 @@ and then we run
 $ net-cli get --config net-cli.json
 ```
 and we get a the same response as before.
+
+## Installation
+### github releases
+to install you could download the binary from the github releases like this.
+```bash
+$ wget https://github.com/kirre02/net-cli/releases/download/0.1.0/net-cli_0.1.0_linux_amd64.tar.gz
+```
+
+Then you need to extract the binary from the net-cli_0.1.0_linux_amd64.tar.gz file.
+```bash
+$ tar -xzf net-cli_0.1.0_linux_amd64.tar.gz
+```
+After you have unpacked the binary you can then move it to your /bin folder.
+```bash
+$ sudo mv "./net-cli" "$HOME/bin"
+```
+### install script
+You could also just git clone the repository into a local machine and run the ```install.sh``` script like in this example below.
+
+```bash
+$ git clone https://github.com/kirre02/net-cli.git --depth=1
+```
+and the you can run the install script
+```bash
+$ ./install.sh
+```
+if successfull you should get a message that says
+```bash
+"Installation complete! The binary has been updated."
+```
+**_NOTE:_** this script only works for Linux and macOS

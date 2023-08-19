@@ -15,6 +15,6 @@ if [ -f "/usr/local/bin/${BINARY_NAME}" ]; then
 fi
 
 # Move the new binary to /usr/local/bin
-sudo mv "./${BINARY_NAME}" "/usr/local/bin"
+sudo mv "./${BINARY_NAME}" "$HOME/bin"
 
 echo "Installation complete! The binary has been updated."
