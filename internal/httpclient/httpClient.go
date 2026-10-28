@@ -8,24 +8,29 @@ import (
 	"time"
 )
 
+// Client executes HTTP requests with a configured timeout and User-Agent header.
 type Client struct {
 	client    *http.Client
 	userAgent string
 }
 
+// Response contains the data returned by an HTTP request.
 type Response struct {
 	StatusCode int
 	Header     http.Header
 	Body       []byte
 }
 
+// do executes an HTTP request using ctx. A canceled context or expired client
+// timeout causes an error. Transport, request-construction, and body-reading
+// failures also return an error. Non-2xx HTTP status codes return a Response
+// with a nil error.
 func (c *Client) do(
 	ctx context.Context,
 	method string,
 	url string,
 	body []byte,
 ) (*Response, error) {
-	// Build the request
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
 	if err != nil {
@@ -33,7 +38,6 @@ func (c *Client) do(
 	}
 
 	req.Header.Set("User-Agent", c.userAgent)
-	// Execute it using c.client.
 	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -46,7 +50,6 @@ func (c *Client) do(
 		return nil, err
 	}
 
-	// Return status code, headers, and body.
 	return &Response{
 		StatusCode: res.StatusCode,
 		Header:     res.Header.Clone(),
@@ -54,6 +57,11 @@ func (c *Client) do(
 	}, nil
 }
 
+// NewClient returns a Client with the supplied request timeout and User-Agent header.
+//
+// A timeout of zero or less uses a default of 10 seconds. An empty userAgent uses
+// "netcli/0.1.0". The timeout includes the entire request, including reading the
+// response body.
 func NewClient(timeout time.Duration, userAgent string) *Client {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
