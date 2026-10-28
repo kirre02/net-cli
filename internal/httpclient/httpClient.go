@@ -55,7 +55,12 @@ func (c *Client) do(
 
 	res, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("executing HTTP request: %w", err)
+		return nil, fmt.Errorf(
+			"executing %s request to %q: %w",
+			method,
+			rawUrl,
+			err,
+		)
 	}
 
 	defer res.Body.Close()
