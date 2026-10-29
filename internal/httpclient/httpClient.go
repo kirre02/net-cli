@@ -122,6 +122,14 @@ func (c *Client) PutRequest(
 	return c.do(ctx, http.MethodPut, rawUrl, body, nil)
 }
 
+func (c *Client) PutRequestWithHeaders(
+	context context.Context,
+	rawURL string,
+	payload []byte,
+	headers http.Header) (*Response, error) {
+	return c.do(context, http.MethodPut, rawURL, payload, headers)
+}
+
 func (c *Client) DeleteRequest(
 	ctx context.Context,
 	rawUrl string,
