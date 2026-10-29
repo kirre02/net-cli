@@ -11,10 +11,9 @@ import (
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "net-cli",
-	Short: "A simple CLI tool for http calls",
+	Short: "A simple CLI tool for HTTP calls",
 	Run: func(cmd *cobra.Command, args []string) {
 		showVersion, _ := cmd.Flags().GetBool("version")
 		if showVersion {
@@ -24,31 +23,53 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
-	rootCmd.PersistentFlags().BoolP("version", "v", false, "Print version")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	rootCmd.PersistentFlags().StringVar(
+		&cfgFile,
+		"config",
+		"",
+		"config file",
+	)
+	rootCmd.PersistentFlags().BoolP(
+		"version",
+		"v",
+		false,
+		"Print version",
+	)
+	rootCmd.Flags().BoolP(
+		"toggle",
+		"t",
+		false,
+		"Help message for toggle",
+	)
 }
 
 func initConfig() {
 	if cfgFile != "" {
+		// Use the explicitly provided config file.
 		viper.SetConfigFile(cfgFile)
-		viper.SetConfigType("json")
-		if err := viper.ReadInConfig(); err != nil {
-			fmt.Printf("Error reading config file: %s\n", err)
-			os.Exit(1)
+	} else {
+		// Look for config.yaml in the current directory.
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		// Allow the CLI to run without a config file.
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			return
 		}
+
+		fmt.Fprintf(os.Stderr, "Error reading config file: %v\n", err)
+		os.Exit(1)
 	}
 }

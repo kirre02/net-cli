@@ -32,6 +32,7 @@ func (c *Client) do(
 	method string,
 	rawUrl string,
 	body []byte,
+	headers http.Header,
 ) (*Response, error) {
 	parsedURL, err := url.Parse(rawUrl)
 	if err != nil {
@@ -52,6 +53,13 @@ func (c *Client) do(
 	}
 
 	req.Header.Set("User-Agent", c.userAgent)
+
+	// Apply any headers provided by the caller.
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
 
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -86,7 +94,7 @@ func (c *Client) GetRequest(
 	ctx context.Context,
 	rawUrl string,
 ) (*Response, error) {
-	return c.do(ctx, http.MethodGet, rawUrl, nil)
+	return c.do(ctx, http.MethodGet, rawUrl, nil, nil)
 }
 
 func (c *Client) PostRequest(
@@ -94,7 +102,16 @@ func (c *Client) PostRequest(
 	rawUrl string,
 	body []byte,
 ) (*Response, error) {
-	return c.do(ctx, http.MethodPost, rawUrl, body)
+	return c.do(ctx, http.MethodPost, rawUrl, body, nil)
+}
+
+func (c *Client) PostRequestWithHeaders(
+	ctx context.Context,
+	rawURL string,
+	body []byte,
+	headers http.Header,
+) (*Response, error) {
+	return c.do(ctx, http.MethodPost, rawURL, body, headers)
 }
 
 func (c *Client) PutRequest(
@@ -102,14 +119,14 @@ func (c *Client) PutRequest(
 	rawUrl string,
 	body []byte,
 ) (*Response, error) {
-	return c.do(ctx, http.MethodPut, rawUrl, body)
+	return c.do(ctx, http.MethodPut, rawUrl, body, nil)
 }
 
 func (c *Client) DeleteRequest(
 	ctx context.Context,
 	rawUrl string,
 ) (*Response, error) {
-	return c.do(ctx, http.MethodDelete, rawUrl, nil)
+	return c.do(ctx, http.MethodDelete, rawUrl, nil, nil)
 }
 
 // NewClient returns a Client with the supplied request timeout and default
