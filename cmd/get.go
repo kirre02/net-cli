@@ -1,14 +1,10 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
+	"time"
 
-	netcli "github.com/kirre02/net-cli/pkg/net-cli"
+	"github.com/kirre02/net-cli/internal/httpclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,7 +13,7 @@ import (
 var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Run a GET request over HTTP",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var url string
 
 		// Check if URL is provided as an argument
@@ -28,23 +24,25 @@ var getCmd = &cobra.Command{
 			url = viper.GetString("url")
 		}
 
-		client := netcli.NewDefaultHTTPClient()
+		client := httpclient.NewClient(10 * time.Second)
 
-		res, err := client.GetRequest(context.Background(), url)
+		res, err := client.GetRequest(cmd.Context(), url)
 		if err != nil {
-			fmt.Printf("Error sending GET request: %v\n", err)
-			return
+			return fmt.Errorf("GET request failed: %w", err)
 		}
 
-		// Convert the response to JSON-formatted string with indentation
-		responseJSON, err := json.MarshalIndent(res, "", "  ")
+		fmt.Fprintf(cmd.OutOrStdout(), "Status: %d\n", res.StatusCode)
+
+		_, err = cmd.OutOrStdout().Write(res.Body)
 		if err != nil {
-			fmt.Printf("Error marshaling response to JSON: %v\n", err)
-			return
+			return fmt.Errorf("writing response body: %w", err)
 		}
 
-		// Print the JSON-formatted response
-		fmt.Printf("Response:\n%s\n", responseJSON)
+		if len(res.Body) > 0 && res.Body[len(res.Body)-1] != '\n' {
+			fmt.Println(cmd.OutOrStdout())
+		}
+
+		return nil
 	},
 }
 

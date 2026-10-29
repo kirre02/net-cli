@@ -1,48 +1,55 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 
-	netcli "github.com/kirre02/net-cli/pkg/net-cli"
+	"github.com/kirre02/net-cli/internal/httpclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete [url]",
 	Short: "Runs a DELETE request over HTTP",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var url string
 
-		// Check if URL is provided as an argument
 		if len(args) == 1 {
 			url = args[0]
 		} else {
-			// Use URL from config
 			url = viper.GetString("url")
 		}
 
-		client := netcli.NewDefaultHTTPClient()
-		// Send the delete request
-		res, err := client.DeleteRequest(context.Background(), url)
-		if err != nil {
-			return err
-		}
-		// Convert the response to JSON-formatted string with indentation
-		responseJSON, err := json.MarshalIndent(res, "", "  ")
-		if err != nil {
-			fmt.Printf("Error marshaling response to JSON: %v\n", err)
-			return err
+		if url == "" {
+			return fmt.Errorf("URL must be provided as an argument or configured")
 		}
 
-		// Print the JSON-formatted response
-		fmt.Printf("Response:\n%s\n", responseJSON)
+		client := httpclient.NewClient(0)
+
+		res, err := client.DeleteRequest(cmd.Context(), url)
+		if err != nil {
+			return fmt.Errorf("DELETE request failed: %w", err)
+		}
+		if err != nil {
+			return fmt.Errorf("PUT request failed: %w", err)
+		}
+
+		out := cmd.OutOrStdout()
+
+		if _, err := fmt.Fprintf(out, "Status: %d\n", res.StatusCode); err != nil {
+			return fmt.Errorf("writing response status: %w", err)
+		}
+
+		if _, err := out.Write(res.Body); err != nil {
+			return fmt.Errorf("writing response body: %w", err)
+		}
+
+		if len(res.Body) > 0 && res.Body[len(res.Body)-1] != '\n' {
+			if _, err := fmt.Fprintln(out); err != nil {
+				return fmt.Errorf("writing response newline: %w", err)
+			}
+		}
 
 		return nil
 	},
