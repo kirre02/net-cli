@@ -5,40 +5,40 @@ import (
 	"encoding/json"
 	"fmt"
 
-	netcli "github.com/kirre02/net-cli/pkg/net-cli"
+	"github.com/kirre02/net-cli/internal/httpclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete [url]",
 	Short: "Runs a DELETE request over HTTP",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var url string
 
-		// Check if URL is provided as an argument
 		if len(args) == 1 {
 			url = args[0]
 		} else {
-			// Use URL from config
 			url = viper.GetString("url")
 		}
 
-		client := netcli.NewDefaultHTTPClient()
-		// Send the delete request
-		res, err := client.DeleteRequest(context.Background(), url)
-		if err != nil {
-			return err
-		}
-		// Convert the response to JSON-formatted string with indentation
-		responseJSON, err := json.MarshalIndent(res, "", "  ")
-		if err != nil {
-			fmt.Printf("Error marshaling response to JSON: %v\n", err)
-			return err
+		if url == "" {
+			return fmt.Errorf("URL must be provided as an argument or configured")
 		}
 
-		// Print the JSON-formatted response
+		client := httpclient.NewClient(0)
+
+		res, err := client.DeleteRequest(context.Background(), url)
+		if err != nil {
+			return fmt.Errorf("DELETE request failed: %w", err)
+		}
+
+		responseJSON, err := json.MarshalIndent(res, "", "  ")
+		if err != nil {
+			return fmt.Errorf("formatting response as JSON: %w", err)
+		}
+
 		fmt.Printf("Response:\n%s\n", responseJSON)
 
 		return nil

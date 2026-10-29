@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -256,6 +257,103 @@ func TestClient_PutRequest(t *testing.T) {
 
 			if string(got.Body) != tt.wantBody {
 				t.Errorf("Body = %q, want %q", got.Body, tt.wantBody)
+			}
+		})
+	}
+}
+
+func TestClient_DeleteRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		url        string
+		statusCode int
+		wantErr    bool
+	}{
+		{
+			name:       "successful request",
+			statusCode: http.StatusOK,
+		},
+		{
+			name:    "missing scheme",
+			url:     "localhost:8080/resource",
+			wantErr: true,
+		},
+		{
+			name:    "unsupported scheme",
+			url:     "ftp://example.com/resource",
+			wantErr: true,
+		},
+		{
+			name:       "not found",
+			statusCode: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					if r.Method != http.MethodDelete {
+						t.Errorf("expected method DELETE, got %s", r.Method)
+					}
+
+					if r.Header.Get("User-Agent") != "netcli/0.1.0" {
+						t.Errorf(
+							"expected User-Agent netcli/0.1.0, got %q",
+							r.Header.Get("User-Agent"),
+						)
+					}
+
+					if tt.statusCode != 0 {
+						w.WriteHeader(tt.statusCode)
+					}
+
+					_, _ = w.Write([]byte(`{"message":"test response"}`))
+				},
+			))
+			defer server.Close()
+
+			url := tt.url
+			if url == "" {
+				url = server.URL
+			}
+
+			client := NewClient(0)
+			res, err := client.DeleteRequest(context.Background(), url)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected an error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if res == nil {
+				t.Fatal("expected a response, got nil")
+			}
+
+			expectedStatus := tt.statusCode
+			if expectedStatus == 0 {
+				expectedStatus = http.StatusOK
+			}
+
+			if res.StatusCode != expectedStatus {
+				t.Errorf(
+					"expected status code %d, got %d",
+					expectedStatus,
+					res.StatusCode,
+				)
+			}
+
+			if !strings.Contains(
+				string(res.Body),
+				"test response",
+			) {
+				t.Errorf("unexpected response body: %s", res.Body)
 			}
 		})
 	}
