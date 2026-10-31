@@ -31,14 +31,21 @@ func NewSQLite() (*SQLite, error) {
 		return nil, fmt.Errorf("create application directory: %w", err)
 	}
 
-	dbPath := filepath.Join(appDir, "net-cli.db")
+	return openSQLite(filepath.Join(appDir, "net-cli.db"))
+}
 
+func openSQLite(dbPath string) (*SQLite, error) {
 	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
 	db.SetMaxOpenConns(1)
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping database: %w", err)
+	}
 
 	if err := migrate(db); err != nil {
 		db.Close()

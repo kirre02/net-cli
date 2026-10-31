@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 var ErrEmptyCollectionName = errors.New("collection name cannot be empty")
 
@@ -10,7 +13,7 @@ type Collection struct {
 }
 
 func (c Collection) Validate() error {
-	if c.Name == "" {
+	if strings.TrimSpace(c.Name) == "" {
 		return ErrEmptyCollectionName
 	}
 	return nil
