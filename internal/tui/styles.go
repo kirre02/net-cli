@@ -13,8 +13,7 @@ var (
 	sidebarStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
-			Padding(1).
-			Width(26)
+			Padding(1)
 
 	panelStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -27,29 +26,33 @@ var (
 
 	mutedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
+
+	selectedCollectionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("42")).
+				Bold(true).
+				PaddingLeft(1)
+
+	collectionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")).
+			PaddingLeft(1)
 )
 
 var methodStyles = map[domain.HTTPMethod]lipgloss.Style{
-	domain.MethodGet: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("42")),
-	domain.MethodPost: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("214")),
-	domain.MethodPut: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("39")),
-	domain.MethodPatch: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("44")),
-	domain.MethodDelete: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("196")),
-	domain.MethodHead: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("141")),
-	domain.MethodOptions: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("245")),
+	domain.MethodGet:     lipgloss.NewStyle().Foreground(lipgloss.Color("42")),
+	domain.MethodPost:    lipgloss.NewStyle().Foreground(lipgloss.Color("214")),
+	domain.MethodPut:     lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
+	domain.MethodPatch:   lipgloss.NewStyle().Foreground(lipgloss.Color("51")),
+	domain.MethodDelete:  lipgloss.NewStyle().Foreground(lipgloss.Color("196")),
+	domain.MethodHead:    lipgloss.NewStyle().Foreground(lipgloss.Color("141")),
+	domain.MethodOptions: lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
 }
 
 func renderMethod(method domain.HTTPMethod) string {
 	style, ok := methodStyles[method]
 	if !ok {
-		return string(method)
+		return lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245")).
+			Render(string(method))
 	}
 
 	return style.Render(string(method))
