@@ -2,6 +2,7 @@ package tui
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -215,7 +216,22 @@ func (m *model) View() string {
 	header := titleStyle.Render("NetPilot") +
 		mutedStyle.Render("  HTTP client")
 
-	footer := mutedStyle.Render("q  Quit")
+	bindings := []string{
+		renderKeyBinding("j/k", "Navigate"),
+		renderKeyBinding("h/l", "Switch panel"),
+		renderKeyBinding("enter", "Select"),
+	}
+
+	if m.sidebarMode == sidebarRequests {
+		bindings = append(bindings, renderKeyBinding("esc", "Back"))
+	}
+
+	bindings = append(bindings, renderKeyBinding("q", "Quit"))
+
+	footer := strings.Join(
+		bindings,
+		mutedStyle.Render("  |  "),
+	)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,

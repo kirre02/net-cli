@@ -56,8 +56,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.requests = msg.requests
 		m.selectedRequestIndex = 0
-		m.activeRequest = nil
 		m.sidebarMode = sidebarRequests
+		m.updateActiveRequest()
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -74,15 +74,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "j", "down":
-			if m.focusedPanel == focusSidebar {
+			switch m.focusedPanel {
+			case focusSidebar:
 				m.moveSelection(1)
+			case focusRequest:
+				m.moveRequestField(1)
 			}
 
 		case "k", "up":
-			if m.focusedPanel == focusSidebar {
+			switch m.focusedPanel {
+			case focusSidebar:
 				m.moveSelection(-1)
+			case focusRequest:
+				m.moveRequestField(-1)
 			}
-
 		case "h", "left":
 			if m.focusedPanel > focusSidebar {
 				m.focusedPanel--
@@ -107,13 +112,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, loadRequests(m.store, collectionID)
 				}
 
-				if m.sidebarMode == sidebarRequests {
-					if len(m.requests) == 0 {
-						return m, nil
-					}
-
-					m.activeRequest = &m.requests[m.selectedRequestIndex]
-				}
 			}
 		}
 	}
@@ -144,6 +142,29 @@ func loadRequests(store *storage.SQLite, collectionID string) tea.Cmd {
 			requests:     requests,
 			err:          err,
 		}
+	}
+}
+
+func (m *model) updateActiveRequest() {
+	if len(m.requests) == 0 {
+		m.activeRequest = nil
+		return
+	}
+
+	m.activeRequest = &m.requests[m.selectedRequestIndex]
+}
+
+func (m *model) moveRequestField(delta int) {
+	const fieldCount = 4
+
+	m.selectedField += requestField(delta)
+
+	if m.selectedField < fieldMethod {
+		m.selectedField = fieldMethod
+	}
+
+	if m.selectedField >= fieldCount {
+		m.selectedField = fieldBody
 	}
 }
 
@@ -183,4 +204,6 @@ func (m *model) moveSelection(delta int) {
 	if m.selectedRequestIndex >= count {
 		m.selectedRequestIndex = count - 1
 	}
+
+	m.updateActiveRequest()
 }

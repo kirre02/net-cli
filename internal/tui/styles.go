@@ -35,6 +35,18 @@ var (
 	collectionStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
 			PaddingLeft(1)
+
+	keyStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("42")).
+			Bold(true)
+
+	footerDescriptionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("245"))
+
+	selectedFieldStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("42")).
+				Padding(0, 1)
 )
 
 var methodStyles = map[domain.HTTPMethod]lipgloss.Style{
@@ -56,4 +68,9 @@ func renderMethod(method domain.HTTPMethod) string {
 	}
 
 	return style.Render(string(method))
+}
+
+func renderKeyBinding(key, description string) string {
+	return keyStyle.Render(key) + " " +
+		footerDescriptionStyle.Render(description)
 }

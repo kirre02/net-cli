@@ -20,6 +20,15 @@ const (
 	sidebarRequests
 )
 
+type requestField int
+
+const (
+	fieldMethod requestField = iota
+	fieldURL
+	fieldHeaders
+	fieldBody
+)
+
 type model struct {
 	store *storage.SQLite
 
@@ -29,6 +38,8 @@ type model struct {
 	requests             []domain.Request
 	selectedRequestIndex int
 	activeRequest        *domain.Request
+
+	selectedField requestField
 
 	sidebarMode  sidebarMode
 	focusedPanel focus
