@@ -69,6 +69,10 @@ type model struct {
 	headerEditField headerEditField
 	headerCursor    int
 
+	editingBody bool
+	bodyDraft   string
+	bodyCursor  int
+
 	sidebarMode  sidebarMode
 	focusedPanel focus
 

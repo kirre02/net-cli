@@ -101,6 +101,7 @@ func (m *model) View() tea.View {
 		))
 
 	panelContentWidth := mainWidth - panelStyle.GetHorizontalFrameSize()
+	requestContentHeight := requestHeight - panelStyle.GetVerticalFrameSize()
 
 	// Highlight the selected request field when the Request panel is focused.
 	renderField := func(field requestField, content string) string {
@@ -146,6 +147,74 @@ func (m *model) View() tea.View {
 		}
 
 		return before + urlCursorStyle.Render(char) + after
+	}
+
+	renderEditableBody := func(visibleLines int) string {
+		runes := []rune(m.bodyDraft)
+
+		cursor := m.bodyCursor
+		if cursor < 0 {
+			cursor = 0
+		}
+		if cursor > len(runes) {
+			cursor = len(runes)
+		}
+
+		// Determine the cursor's line and column.
+		cursorLine := 0
+		cursorLineStart := 0
+
+		for i := 0; i < cursor; i++ {
+			if runes[i] == '\n' {
+				cursorLine++
+				cursorLineStart = i + 1
+			}
+		}
+
+		cursorColumn := cursor - cursorLineStart
+
+		lines := strings.Split(string(runes), "\n")
+
+		// Keep the cursor inside the visible viewport.
+		scrollOffset := 0
+		if cursorLine >= visibleLines {
+			scrollOffset = cursorLine - visibleLines + 1
+		}
+
+		end := scrollOffset + visibleLines
+		if end > len(lines) {
+			end = len(lines)
+		}
+
+		visible := make([]string, 0, visibleLines)
+
+		for i := scrollOffset; i < end; i++ {
+			line := lines[i]
+
+			if i == cursorLine {
+				lineRunes := []rune(line)
+
+				if cursorColumn > len(lineRunes) {
+					cursorColumn = len(lineRunes)
+				}
+
+				before := string(lineRunes[:cursorColumn])
+				after := string(lineRunes[cursorColumn:])
+
+				cursorChar := " "
+
+				if cursorColumn < len(lineRunes) {
+					cursorChar = string(lineRunes[cursorColumn])
+					after = string(lineRunes[cursorColumn+1:])
+				}
+
+				line = before + bodyCursorStyle.Render(cursorChar) + after
+			}
+
+			visible = append(visible, line)
+		}
+
+		return strings.Join(visible, "\n")
 	}
 
 	// Build request content.
@@ -279,10 +348,30 @@ func (m *model) View() tea.View {
 			"",
 		)
 
+		precedingHeight := lipgloss.Height(
+			lipgloss.JoinVertical(lipgloss.Left, requestContent...),
+		)
+
+		bodyFieldFrameHeight := 0
+		if m.focusedPanel == focusRequest && m.selectedField == fieldBody {
+			bodyFieldFrameHeight = selectedFieldStyle.GetVerticalFrameSize()
+		}
+
+		bodyVisibleLines := requestContentHeight -
+			precedingHeight -
+			1 -
+			bodyFieldFrameHeight
+
+		if bodyVisibleLines < 1 {
+			bodyVisibleLines = 1
+		}
+
 		// Body field.
 		body := request.Body
 
-		if body == "" {
+		if m.editingBody {
+			body = renderEditableBody(bodyVisibleLines)
+		} else if body == "" {
 			body = mutedStyle.Render("No body")
 		}
 
@@ -302,8 +391,6 @@ func (m *model) View() tea.View {
 	if m.focusedPanel == focusRequest {
 		requestBorder = lipgloss.Color("42")
 	}
-
-	requestContentHeight := requestHeight - panelStyle.GetVerticalFrameSize()
 
 	requestPanel := panelStyle.
 		Width(panelContentWidth).
@@ -374,6 +461,15 @@ func (m *model) View() tea.View {
 			renderKeyBinding("esc", "Back"),
 		}
 
+	case m.editingBody:
+		_, saveLabel := saveShortcut()
+		bindings = []string{
+			renderKeyBinding("←/→/↑/↓", "Move cursor"),
+			renderKeyBinding("enter", "New line"),
+			renderKeyBinding(saveLabel, "Save"),
+			renderKeyBinding("esc", "Cancel"),
+		}
+
 	default:
 		bindings = []string{
 			renderKeyBinding("j/k", "Navigate"),
@@ -393,6 +489,14 @@ func (m *model) View() tea.View {
 			bindings = append(
 				bindings,
 				renderKeyBinding("enter", "Edit headers"),
+			)
+		} else if m.focusedPanel == focusRequest &&
+			m.activeRequest != nil &&
+			m.selectedField == fieldBody {
+
+			bindings = append(
+				bindings,
+				renderKeyBinding("enter", "Edit body"),
 			)
 		} else {
 			bindings = append(

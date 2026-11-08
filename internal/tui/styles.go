@@ -49,6 +49,10 @@ var (
 
 	urlCursorStyle = lipgloss.NewStyle().
 			Reverse(true)
+
+	bodyCursorStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("42")).
+			Foreground(lipgloss.Color("0"))
 )
 
 var methodStyles = map[domain.HTTPMethod]lipgloss.Style{
