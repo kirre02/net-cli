@@ -2,7 +2,9 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"runtime"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/kirre02/net-cli/internal/domain"
@@ -82,18 +84,35 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.updateActiveRequest()
+
 		m.editingURL = false
 		m.urlDraft = ""
 		m.urlCursor = 0
+
+		m.editingHeader = false
+		m.editingHeaders = false
+		m.headerDraftKey = ""
+		m.headerDraftValue = ""
+		m.headerOriginalKey = ""
+		m.headerCursor = 0
+
 		m.err = nil
 
 	case tea.KeyPressMsg:
+		if m.saving {
+			return m, nil
+		}
+
 		if m.editingURL {
 			return m, m.handleURLInput(msg)
 		}
 
-		if m.saving {
-			return m, nil
+		if m.editingHeader {
+			return m, m.handleHeaderInput(msg)
+		}
+
+		if m.editingHeaders {
+			return m, m.handleHeaderNavigation(msg)
 		}
 
 		switch msg.String() {
@@ -152,9 +171,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.focusedPanel == focusRequest &&
-				m.selectedField == fieldURL &&
 				m.activeRequest != nil {
-				m.startURLEditing()
+				switch m.selectedField {
+				case fieldURL:
+					m.startURLEditing()
+				case fieldHeaders:
+					m.startHeaderEditing()
+				}
 			}
 		}
 	}
@@ -249,6 +272,222 @@ func (m *model) handleURLInput(msg tea.KeyPressMsg) tea.Cmd {
 	}
 
 	return nil
+}
+
+func (m *model) startHeaderEditing() {
+	if m.activeRequest == nil {
+		return
+	}
+
+	m.editingHeaders = true
+	m.selectedHeader = 0
+	m.err = nil
+}
+
+func (m *model) handleHeaderNavigation(msg tea.KeyPressMsg) tea.Cmd {
+	keys := sortedHeaderKeys(m.activeRequest.Headers)
+
+	switch msg.String() {
+	case "esc":
+		m.editingHeaders = false
+		m.selectedHeader = 0
+		m.err = nil
+
+	case "j", "down":
+		if m.selectedHeader < len(keys)-1 {
+			m.selectedHeader++
+		}
+
+	case "k", "up":
+		if m.selectedHeader > 0 {
+			m.selectedHeader--
+		}
+
+	case "a":
+		m.startHeaderInput(true)
+
+	case "e":
+		if len(keys) > 0 {
+			m.startHeaderInput(false)
+		}
+
+	case "d":
+		if len(keys) == 0 {
+			return nil
+		}
+
+		request := *m.activeRequest
+		request.Headers = cloneHeaders(request.Headers)
+
+		delete(request.Headers, keys[m.selectedHeader])
+
+		m.saving = true
+		m.err = nil
+
+		return saveRequest(m.store, request)
+	}
+
+	return nil
+}
+
+func (m *model) startHeaderInput(isNew bool) {
+	m.headerDraftKey = ""
+	m.headerDraftValue = ""
+	m.headerOriginalKey = ""
+	m.headerEditField = headerKeyField
+
+	if !isNew {
+		keys := sortedHeaderKeys(m.activeRequest.Headers)
+
+		if m.selectedHeader < 0 || m.selectedHeader >= len(keys) {
+			return
+		}
+
+		key := keys[m.selectedHeader]
+
+		m.headerDraftKey = key
+		m.headerDraftValue = m.activeRequest.Headers[key]
+		m.headerOriginalKey = key
+	}
+
+	m.headerCursor = len([]rune(m.headerDraftKey))
+	m.editingHeader = true
+	m.err = nil
+}
+
+func (m *model) handleHeaderInput(msg tea.KeyPressMsg) tea.Cmd {
+	saveKey, _ := saveShortcut()
+
+	switch msg.String() {
+	case "esc":
+		m.editingHeader = false
+		m.headerDraftKey = ""
+		m.headerDraftValue = ""
+		m.headerOriginalKey = ""
+		m.headerCursor = 0
+		m.err = nil
+
+	case "tab":
+		if m.headerEditField == headerKeyField {
+			m.headerEditField = headerValueField
+			m.headerCursor = len([]rune(m.headerDraftValue))
+		} else {
+			m.headerEditField = headerKeyField
+			m.headerCursor = len([]rune(m.headerDraftKey))
+		}
+
+	case saveKey:
+		key := strings.TrimSpace(m.headerDraftKey)
+
+		if key == "" {
+			m.err = errors.New("header name cannot be empty")
+			return nil
+		}
+
+		if m.activeRequest == nil {
+			return nil
+		}
+
+		request := *m.activeRequest
+		request.Headers = cloneHeaders(request.Headers)
+
+		if m.headerOriginalKey != "" {
+			delete(request.Headers, m.headerOriginalKey)
+		}
+
+		for existingKey := range request.Headers {
+			if strings.EqualFold(existingKey, key) {
+				m.err = errors.New("header already exists")
+				return nil
+			}
+		}
+
+		request.Headers[key] = m.headerDraftValue
+
+		m.saving = true
+		m.err = nil
+
+		return saveRequest(m.store, request)
+
+	case "left":
+		if m.headerCursor > 0 {
+			m.headerCursor--
+		}
+
+	case "right":
+		if m.headerCursor < len([]rune(m.currentHeaderDraft())) {
+			m.headerCursor++
+		}
+
+	case "home":
+		m.headerCursor = 0
+
+	case "end":
+		m.headerCursor = len([]rune(m.currentHeaderDraft()))
+
+	case "backspace":
+		if m.headerCursor > 0 {
+			runes := []rune(m.currentHeaderDraft())
+			runes = append(runes[:m.headerCursor-1], runes[m.headerCursor:]...)
+
+			m.setCurrentHeaderDraft(string(runes))
+			m.headerCursor--
+		}
+
+	case "delete":
+		runes := []rune(m.currentHeaderDraft())
+
+		if m.headerCursor < len(runes) {
+			runes = append(runes[:m.headerCursor], runes[m.headerCursor+1:]...)
+			m.setCurrentHeaderDraft(string(runes))
+		}
+
+	case "enter":
+		return nil
+
+	default:
+		if msg.Text != "" {
+			runes := []rune(m.currentHeaderDraft())
+			insert := []rune(msg.Text)
+
+			updated := make([]rune, 0, len(runes)+len(insert))
+			updated = append(updated, runes[:m.headerCursor]...)
+			updated = append(updated, insert...)
+			updated = append(updated, runes[m.headerCursor:]...)
+
+			m.setCurrentHeaderDraft(string(updated))
+			m.headerCursor += len(insert)
+		}
+	}
+
+	return nil
+}
+
+func (m *model) currentHeaderDraft() string {
+	if m.headerEditField == headerKeyField {
+		return m.headerDraftKey
+	}
+
+	return m.headerDraftValue
+}
+
+func (m *model) setCurrentHeaderDraft(value string) {
+	if m.headerEditField == headerKeyField {
+		m.headerDraftKey = value
+		return
+	}
+
+	m.headerDraftValue = value
+}
+
+func cloneHeaders(headers map[string]string) map[string]string {
+	cloned := make(map[string]string, len(headers))
+
+	for key, value := range headers {
+		cloned[key] = value
+	}
+
+	return cloned
 }
 
 func loadCollections(store *storage.SQLite) tea.Cmd {

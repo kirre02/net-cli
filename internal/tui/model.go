@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"sort"
+
 	"github.com/kirre02/net-cli/internal/domain"
 	"github.com/kirre02/net-cli/internal/storage"
 )
@@ -29,6 +31,13 @@ const (
 	fieldBody
 )
 
+type headerEditField int
+
+const (
+	headerKeyField headerEditField = iota
+	headerValueField
+)
+
 const requestFieldCount = fieldBody + 1
 
 type model struct {
@@ -48,6 +57,18 @@ type model struct {
 	urlCursor  int
 	saving     bool
 
+	editingHeaders bool
+	editingHeader  bool
+
+	selectedHeader int
+
+	headerDraftKey    string
+	headerDraftValue  string
+	headerOriginalKey string
+
+	headerEditField headerEditField
+	headerCursor    int
+
 	sidebarMode  sidebarMode
 	focusedPanel focus
 
@@ -64,4 +85,16 @@ func initialModel(store *storage.SQLite) *model {
 		sidebarMode:   sidebarCollections,
 		selectedField: fieldMethod,
 	}
+}
+
+func sortedHeaderKeys(headers map[string]string) []string {
+	keys := make([]string, 0, len(headers))
+
+	for key := range headers {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }

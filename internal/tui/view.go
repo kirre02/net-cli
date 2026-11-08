@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"sort"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -129,6 +128,26 @@ func (m *model) View() tea.View {
 		return before + urlCursorStyle.Render(cursor) + after
 	}
 
+	// Render an editable header value with a visible cursor.
+	renderEditableHeader := func(value string) string {
+		runes := []rune(value)
+		cursor := m.headerCursor
+
+		if cursor > len(runes) {
+			cursor = len(runes)
+		}
+
+		before := string(runes[:cursor])
+		after := string(runes[cursor:])
+
+		char := " "
+		if cursor < len(runes) {
+			char = string(runes[cursor])
+		}
+
+		return before + urlCursorStyle.Render(char) + after
+	}
+
 	// Build request content.
 	requestContent := []string{
 		titleStyle.Render("Request"),
@@ -178,19 +197,66 @@ func (m *model) View() tea.View {
 			mutedStyle.Render("Headers"),
 		}
 
-		if len(request.Headers) == 0 {
+		switch {
+		case m.editingHeader:
+			keyValue := m.headerDraftKey
+			valueValue := m.headerDraftValue
+
+			if m.headerEditField == headerKeyField {
+				keyValue = renderEditableHeader(keyValue)
+			} else {
+				valueValue = renderEditableHeader(valueValue)
+			}
+
+			headerLines = append(
+				headerLines,
+				mutedStyle.Render("Key"),
+				keyValue,
+				"",
+				mutedStyle.Render("Value"),
+				valueValue,
+			)
+
+		case m.editingHeaders:
+			keys := sortedHeaderKeys(request.Headers)
+
+			if len(keys) == 0 {
+				headerLines = append(
+					headerLines,
+					mutedStyle.Render("No headers. Press a to add one."),
+				)
+			} else {
+				for i, key := range keys {
+					prefix := "  "
+
+					if i == m.selectedHeader {
+						prefix = "> "
+					}
+
+					line := prefix + key + ": " + request.Headers[key]
+
+					if i == m.selectedHeader {
+						headerLines = append(
+							headerLines,
+							selectedCollectionStyle.Render(line),
+						)
+					} else {
+						headerLines = append(
+							headerLines,
+							collectionStyle.Render(line),
+						)
+					}
+				}
+			}
+
+		case len(request.Headers) == 0:
 			headerLines = append(
 				headerLines,
 				mutedStyle.Render("No headers"),
 			)
-		} else {
-			keys := make([]string, 0, len(request.Headers))
 
-			for key := range request.Headers {
-				keys = append(keys, key)
-			}
-
-			sort.Strings(keys)
+		default:
+			keys := sortedHeaderKeys(request.Headers)
 
 			for _, key := range keys {
 				headerLines = append(
@@ -198,6 +264,13 @@ func (m *model) View() tea.View {
 					key+": "+request.Headers[key],
 				)
 			}
+		}
+
+		if m.err != nil && (m.editingHeader || m.editingHeaders) {
+			headerLines = append(
+				headerLines,
+				mutedStyle.Render(m.err.Error()),
+			)
 		}
 
 		requestContent = append(
@@ -292,6 +365,15 @@ func (m *model) View() tea.View {
 			renderKeyBinding("esc", "Cancel"),
 		}
 
+	case m.editingHeaders:
+		bindings = []string{
+			renderKeyBinding("j/k", "Navigate"),
+			renderKeyBinding("a", "Add"),
+			renderKeyBinding("e", "Edit"),
+			renderKeyBinding("d", "Delete"),
+			renderKeyBinding("esc", "Back"),
+		}
+
 	default:
 		bindings = []string{
 			renderKeyBinding("j/k", "Navigate"),
@@ -299,11 +381,18 @@ func (m *model) View() tea.View {
 		}
 
 		if m.focusedPanel == focusRequest &&
-			m.selectedField == fieldURL &&
-			m.activeRequest != nil {
+			m.activeRequest != nil &&
+			m.selectedField == fieldURL {
 			bindings = append(
 				bindings,
 				renderKeyBinding("enter", "Edit URL"),
+			)
+		} else if m.focusedPanel == focusRequest &&
+			m.activeRequest != nil &&
+			m.selectedField == fieldHeaders {
+			bindings = append(
+				bindings,
+				renderKeyBinding("enter", "Edit headers"),
 			)
 		} else {
 			bindings = append(
@@ -311,7 +400,6 @@ func (m *model) View() tea.View {
 				renderKeyBinding("enter", "Select"),
 			)
 		}
-
 		if m.sidebarMode == sidebarRequests {
 			bindings = append(bindings, renderKeyBinding("esc", "Back"))
 		}
