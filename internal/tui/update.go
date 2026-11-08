@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"runtime"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/kirre02/net-cli/internal/domain"
@@ -173,6 +174,8 @@ func (m *model) startURLEditing() {
 }
 
 func (m *model) handleURLInput(msg tea.KeyPressMsg) tea.Cmd {
+	saveKey, _ := saveShortcut()
+
 	switch msg.String() {
 	case "esc":
 		m.editingURL = false
@@ -180,7 +183,7 @@ func (m *model) handleURLInput(msg tea.KeyPressMsg) tea.Cmd {
 		m.urlCursor = 0
 		m.err = nil
 
-	case "ctrl+s":
+	case saveKey:
 		if m.activeRequest == nil {
 			return nil
 		}
@@ -348,5 +351,18 @@ func (m *model) moveRequestField(delta int) {
 
 	if m.selectedField >= requestFieldCount {
 		m.selectedField = requestFieldCount - 1
+	}
+}
+
+func saveShortcut() (key, label string) {
+	switch runtime.GOOS {
+	case "darwin":
+		return "super+s", "⌘+S"
+	case "linux":
+		return "super+s", "Super+S"
+	case "windows":
+		return "ctrl+s", "Ctrl+S"
+	default:
+		return "ctrl+s", "Ctrl+S"
 	}
 }

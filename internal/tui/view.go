@@ -93,7 +93,7 @@ func (m *model) View() tea.View {
 
 	sidebar := sidebarStyle.
 		Width(sidebarContentWidth).
-		Height(sidebarContentHeight).
+		Height(availableHeight).
 		BorderForeground(lipgloss.Color(sidebarBorder)).
 		Render(fitContent(
 			lipgloss.JoinVertical(lipgloss.Left, items...),
@@ -234,7 +234,7 @@ func (m *model) View() tea.View {
 
 	requestPanel := panelStyle.
 		Width(panelContentWidth).
-		Height(requestContentHeight).
+		Height(requestHeight).
 		BorderForeground(requestBorder).
 		Render(fitContent(
 			lipgloss.JoinVertical(lipgloss.Left, requestContent...),
@@ -248,13 +248,12 @@ func (m *model) View() tea.View {
 		responseBorder = lipgloss.Color("42")
 	}
 
-	responseContentHeight := lipgloss.Height(sidebar) -
-		lipgloss.Height(requestPanel) -
-		panelStyle.GetVerticalFrameSize()/2
+	responseHeight := availableHeight - requestHeight
+	responseContentHeight := responseHeight - panelStyle.GetVerticalFrameSize()
 
 	responsePanel := panelStyle.
 		Width(panelContentWidth).
-		Height(responseContentHeight).
+		Height(responseHeight).
 		BorderForeground(responseBorder).
 		Render(fitContent(
 			lipgloss.JoinVertical(
@@ -266,7 +265,6 @@ func (m *model) View() tea.View {
 			panelContentWidth,
 			responseContentHeight,
 		))
-
 	// Combine main panels.
 	main := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -286,9 +284,11 @@ func (m *model) View() tea.View {
 		}
 
 	case m.editingURL:
+		_, saveLabel := saveShortcut()
+
 		bindings = []string{
 			renderKeyBinding("←/→", "Move cursor"),
-			renderKeyBinding("ctrl+s", "Save"),
+			renderKeyBinding(saveLabel, "Save"),
 			renderKeyBinding("esc", "Cancel"),
 		}
 
