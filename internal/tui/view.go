@@ -100,6 +100,34 @@ func (m *model) View() string {
 			sidebarContentHeight,
 		))
 
+	panelContentWidth := mainWidth - panelStyle.GetHorizontalFrameSize()
+
+	// Highlight the selected request field when the Request panel is focused.
+	renderField := func(field requestField, content string) string {
+		if m.focusedPanel != focusRequest || m.selectedField != field {
+			return content
+		}
+
+		return selectedFieldStyle.
+			Width(panelContentWidth - selectedFieldStyle.GetHorizontalFrameSize()).
+			Render(content)
+	}
+
+	// Render the URL draft with a visible cursor.
+	renderEditableURL := func() string {
+		runes := []rune(m.urlDraft)
+
+		before := string(runes[:m.urlCursor])
+		after := string(runes[m.urlCursor:])
+
+		cursor := " "
+		if m.urlCursor < len(runes) {
+			cursor = string(runes[m.urlCursor])
+		}
+
+		return before + urlCursorStyle.Render(cursor) + after
+	}
+
 	// Build request content.
 	requestContent := []string{
 		titleStyle.Render("Request"),
@@ -114,19 +142,44 @@ func (m *model) View() string {
 	} else {
 		request := m.activeRequest
 
+		// Method field.
+		methodContent := strings.Join([]string{
+			mutedStyle.Render("Method"),
+			renderMethod(request.Method),
+		}, "\n")
+
 		requestContent = append(
 			requestContent,
-			renderMethod(request.Method),
+			renderField(fieldMethod, methodContent),
 			"",
-			mutedStyle.Render("URL"),
-			request.URL,
-			"",
-			mutedStyle.Render("Headers"),
 		)
 
+		// URL field.
+		urlValue := request.URL
+
+		if m.editingURL {
+			urlValue = renderEditableURL()
+		}
+
+		urlContent := strings.Join([]string{
+			mutedStyle.Render("URL"),
+			urlValue,
+		}, "\n")
+
+		requestContent = append(
+			requestContent,
+			renderField(fieldURL, urlContent),
+			"",
+		)
+
+		// Headers field.
+		headerLines := []string{
+			mutedStyle.Render("Headers"),
+		}
+
 		if len(request.Headers) == 0 {
-			requestContent = append(
-				requestContent,
+			headerLines = append(
+				headerLines,
 				mutedStyle.Render("No headers"),
 			)
 		} else {
@@ -139,8 +192,8 @@ func (m *model) View() string {
 			sort.Strings(keys)
 
 			for _, key := range keys {
-				requestContent = append(
-					requestContent,
+				headerLines = append(
+					headerLines,
 					key+": "+request.Headers[key],
 				)
 			}
@@ -148,18 +201,26 @@ func (m *model) View() string {
 
 		requestContent = append(
 			requestContent,
+			renderField(fieldHeaders, strings.Join(headerLines, "\n")),
 			"",
-			mutedStyle.Render("Body"),
 		)
 
-		if request.Body == "" {
-			requestContent = append(
-				requestContent,
-				mutedStyle.Render("No body"),
-			)
-		} else {
-			requestContent = append(requestContent, request.Body)
+		// Body field.
+		body := request.Body
+
+		if body == "" {
+			body = mutedStyle.Render("No body")
 		}
+
+		bodyContent := strings.Join([]string{
+			mutedStyle.Render("Body"),
+			body,
+		}, "\n")
+
+		requestContent = append(
+			requestContent,
+			renderField(fieldBody, bodyContent),
+		)
 	}
 
 	// Request panel.
@@ -168,7 +229,6 @@ func (m *model) View() string {
 		requestBorder = lipgloss.Color("42")
 	}
 
-	panelContentWidth := mainWidth - panelStyle.GetHorizontalFrameSize()
 	requestContentHeight := requestHeight - panelStyle.GetVerticalFrameSize()
 
 	requestPanel := panelStyle.
@@ -216,17 +276,47 @@ func (m *model) View() string {
 	header := titleStyle.Render("NetPilot") +
 		mutedStyle.Render("  HTTP client")
 
-	bindings := []string{
-		renderKeyBinding("j/k", "Navigate"),
-		renderKeyBinding("h/l", "Switch panel"),
-		renderKeyBinding("enter", "Select"),
-	}
+	var bindings []string
 
-	if m.sidebarMode == sidebarRequests {
-		bindings = append(bindings, renderKeyBinding("esc", "Back"))
-	}
+	switch {
+	case m.saving:
+		bindings = []string{
+			mutedStyle.Render("Saving request..."),
+		}
 
-	bindings = append(bindings, renderKeyBinding("q", "Quit"))
+	case m.editingURL:
+		bindings = []string{
+			renderKeyBinding("←/→", "Move cursor"),
+			renderKeyBinding("ctrl+s", "Save"),
+			renderKeyBinding("esc", "Cancel"),
+		}
+
+	default:
+		bindings = []string{
+			renderKeyBinding("j/k", "Navigate"),
+			renderKeyBinding("h/l", "Switch panel"),
+		}
+
+		if m.focusedPanel == focusRequest &&
+			m.selectedField == fieldURL &&
+			m.activeRequest != nil {
+			bindings = append(
+				bindings,
+				renderKeyBinding("enter", "Edit URL"),
+			)
+		} else {
+			bindings = append(
+				bindings,
+				renderKeyBinding("enter", "Select"),
+			)
+		}
+
+		if m.sidebarMode == sidebarRequests {
+			bindings = append(bindings, renderKeyBinding("esc", "Back"))
+		}
+
+		bindings = append(bindings, renderKeyBinding("q", "Quit"))
+	}
 
 	footer := strings.Join(
 		bindings,

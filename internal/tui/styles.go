@@ -47,6 +47,9 @@ var (
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("42")).
 				Padding(0, 1)
+
+	urlCursorStyle = lipgloss.NewStyle().
+			Reverse(true)
 )
 
 var methodStyles = map[domain.HTTPMethod]lipgloss.Style{

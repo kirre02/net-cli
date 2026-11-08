@@ -4,6 +4,7 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/kirre02/net-cli/internal/domain"
 	"github.com/kirre02/net-cli/internal/storage"
 )
@@ -19,7 +20,12 @@ type requestsLoadedMsg struct {
 	err          error
 }
 
-func (m model) Init() tea.Cmd {
+type requestSavedMsg struct {
+	request domain.Request
+	err     error
+}
+
+func (m *model) Init() tea.Cmd {
 	return loadCollections(m.store)
 }
 
@@ -56,10 +62,40 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.requests = msg.requests
 		m.selectedRequestIndex = 0
+		m.selectedField = fieldMethod
 		m.sidebarMode = sidebarRequests
 		m.updateActiveRequest()
 
+	case requestSavedMsg:
+		m.saving = false
+
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+
+		for i := range m.requests {
+			if m.requests[i].ID == msg.request.ID {
+				m.requests[i] = msg.request
+				break
+			}
+		}
+
+		m.updateActiveRequest()
+		m.editingURL = false
+		m.urlDraft = ""
+		m.urlCursor = 0
+		m.err = nil
+
 	case tea.KeyMsg:
+		if m.editingURL {
+			return m, m.handleURLInput(msg)
+		}
+
+		if m.saving {
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -70,6 +106,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.requests = nil
 				m.selectedRequestIndex = 0
 				m.activeRequest = nil
+				m.selectedField = fieldMethod
 				m.err = nil
 			}
 
@@ -88,6 +125,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case focusRequest:
 				m.moveRequestField(-1)
 			}
+
 		case "h", "left":
 			if m.focusedPanel > focusSidebar {
 				m.focusedPanel--
@@ -111,12 +149,104 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					return m, loadRequests(m.store, collectionID)
 				}
+			}
 
+			if m.focusedPanel == focusRequest &&
+				m.selectedField == fieldURL &&
+				m.activeRequest != nil {
+				m.startURLEditing()
 			}
 		}
 	}
 
 	return m, nil
+}
+
+func (m *model) startURLEditing() {
+	if m.activeRequest == nil {
+		return
+	}
+
+	m.urlDraft = m.activeRequest.URL
+	m.urlCursor = len([]rune(m.urlDraft))
+	m.editingURL = true
+	m.err = nil
+}
+
+func (m *model) handleURLInput(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "esc":
+		m.editingURL = false
+		m.urlDraft = ""
+		m.urlCursor = 0
+		m.err = nil
+
+	case "ctrl+s":
+		if m.activeRequest == nil {
+			return nil
+		}
+
+		request := *m.activeRequest
+		request.URL = m.urlDraft
+
+		m.saving = true
+		m.err = nil
+
+		return saveRequest(m.store, request)
+
+	case "left":
+		if m.urlCursor > 0 {
+			m.urlCursor--
+		}
+
+	case "right":
+		if m.urlCursor < len([]rune(m.urlDraft)) {
+			m.urlCursor++
+		}
+
+	case "home":
+		m.urlCursor = 0
+
+	case "end":
+		m.urlCursor = len([]rune(m.urlDraft))
+
+	case "backspace":
+		if m.urlCursor > 0 {
+			runes := []rune(m.urlDraft)
+			runes = append(runes[:m.urlCursor-1], runes[m.urlCursor:]...)
+			m.urlDraft = string(runes)
+			m.urlCursor--
+		}
+
+	case "delete":
+		runes := []rune(m.urlDraft)
+
+		if m.urlCursor < len(runes) {
+			runes = append(runes[:m.urlCursor], runes[m.urlCursor+1:]...)
+			m.urlDraft = string(runes)
+		}
+
+	case "enter":
+		// Keep editing until the user saves or cancels.
+		return nil
+
+	default:
+		// Insert typed characters at the cursor position.
+		if len(msg.Runes) > 0 {
+			runes := []rune(m.urlDraft)
+			insert := msg.Runes
+
+			updated := make([]rune, 0, len(runes)+len(insert))
+			updated = append(updated, runes[:m.urlCursor]...)
+			updated = append(updated, insert...)
+			updated = append(updated, runes[m.urlCursor:]...)
+
+			m.urlDraft = string(updated)
+			m.urlCursor += len(insert)
+		}
+	}
+
+	return nil
 }
 
 func loadCollections(store *storage.SQLite) tea.Cmd {
@@ -145,27 +275,29 @@ func loadRequests(store *storage.SQLite, collectionID string) tea.Cmd {
 	}
 }
 
+func saveRequest(
+	store *storage.SQLite,
+	request domain.Request,
+) tea.Cmd {
+	return func() tea.Msg {
+		err := store.UpdateRequest(context.Background(), request)
+
+		return requestSavedMsg{
+			request: request,
+			err:     err,
+		}
+	}
+}
+
 func (m *model) updateActiveRequest() {
-	if len(m.requests) == 0 {
+	if len(m.requests) == 0 ||
+		m.selectedRequestIndex < 0 ||
+		m.selectedRequestIndex >= len(m.requests) {
 		m.activeRequest = nil
 		return
 	}
 
 	m.activeRequest = &m.requests[m.selectedRequestIndex]
-}
-
-func (m *model) moveRequestField(delta int) {
-	const fieldCount = 4
-
-	m.selectedField += requestField(delta)
-
-	if m.selectedField < fieldMethod {
-		m.selectedField = fieldMethod
-	}
-
-	if m.selectedField >= fieldCount {
-		m.selectedField = fieldBody
-	}
 }
 
 func (m *model) moveSelection(delta int) {
@@ -206,4 +338,16 @@ func (m *model) moveSelection(delta int) {
 	}
 
 	m.updateActiveRequest()
+}
+
+func (m *model) moveRequestField(delta int) {
+	m.selectedField += requestField(delta)
+
+	if m.selectedField < fieldMethod {
+		m.selectedField = fieldMethod
+	}
+
+	if m.selectedField >= requestFieldCount {
+		m.selectedField = requestFieldCount - 1
+	}
 }

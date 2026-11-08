@@ -29,6 +29,8 @@ const (
 	fieldBody
 )
 
+const requestFieldCount = fieldBody + 1
+
 type model struct {
 	store *storage.SQLite
 
@@ -41,6 +43,11 @@ type model struct {
 
 	selectedField requestField
 
+	editingURL bool
+	urlDraft   string
+	urlCursor  int
+	saving     bool
+
 	sidebarMode  sidebarMode
 	focusedPanel focus
 
@@ -52,8 +59,9 @@ type model struct {
 
 func initialModel(store *storage.SQLite) *model {
 	return &model{
-		store:        store,
-		focusedPanel: focusSidebar,
-		sidebarMode:  sidebarCollections,
+		store:         store,
+		focusedPanel:  focusSidebar,
+		sidebarMode:   sidebarCollections,
+		selectedField: fieldMethod,
 	}
 }
