@@ -1,15 +1,13 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/kirre02/net-cli/internal/storage"
 )
 
 func Run(store *storage.SQLite) error {
-	p := tea.NewProgram(
-		initialModel(store),
-		tea.WithAltScreen(),
-	)
+	p := tea.NewProgram(initialModel(store))
 
 	_, err := p.Run()
 	return err

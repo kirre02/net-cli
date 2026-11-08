@@ -3,8 +3,7 @@ package tui
 import (
 	"context"
 
-	tea "github.com/charmbracelet/bubbletea"
-
+	tea "charm.land/bubbletea/v2"
 	"github.com/kirre02/net-cli/internal/domain"
 	"github.com/kirre02/net-cli/internal/storage"
 )
@@ -87,7 +86,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.urlCursor = 0
 		m.err = nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.editingURL {
 			return m, m.handleURLInput(msg)
 		}
@@ -173,7 +172,7 @@ func (m *model) startURLEditing() {
 	m.err = nil
 }
 
-func (m *model) handleURLInput(msg tea.KeyMsg) tea.Cmd {
+func (m *model) handleURLInput(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
 		m.editingURL = false
@@ -232,9 +231,9 @@ func (m *model) handleURLInput(msg tea.KeyMsg) tea.Cmd {
 
 	default:
 		// Insert typed characters at the cursor position.
-		if len(msg.Runes) > 0 {
+		if msg.Text != "" {
 			runes := []rune(m.urlDraft)
-			insert := msg.Runes
+			insert := []rune(msg.Text)
 
 			updated := make([]rune, 0, len(runes)+len(insert))
 			updated = append(updated, runes[:m.urlCursor]...)

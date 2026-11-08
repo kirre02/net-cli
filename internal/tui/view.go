@@ -4,16 +4,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
-func (m *model) View() string {
+func (m *model) View() tea.View {
 	if m.width == 0 || m.height == 0 {
-		return "Initializing..."
+		return tea.NewView("Initializing...")
 	}
 
 	if m.width < 60 || m.height < 15 {
-		return "Terminal is too small. Resize to at least 60x15."
+		return tea.NewView("Terminal is too small. Resize to at least 60x15.")
 	}
 
 	// Calculate available dimensions.
@@ -82,9 +83,9 @@ func (m *model) View() string {
 	}
 
 	// Sidebar panel.
-	sidebarBorder := lipgloss.Color("240")
+	sidebarBorder := "240"
 	if m.focusedPanel == focusSidebar {
-		sidebarBorder = lipgloss.Color("42")
+		sidebarBorder = "42"
 	}
 
 	sidebarContentWidth := sidebarWidth - sidebarStyle.GetHorizontalFrameSize()
@@ -93,7 +94,7 @@ func (m *model) View() string {
 	sidebar := sidebarStyle.
 		Width(sidebarContentWidth).
 		Height(sidebarContentHeight).
-		BorderForeground(sidebarBorder).
+		BorderForeground(lipgloss.Color(sidebarBorder)).
 		Render(fitContent(
 			lipgloss.JoinVertical(lipgloss.Left, items...),
 			sidebarContentWidth,
@@ -336,5 +337,8 @@ func (m *model) View() string {
 		footer,
 	)
 
-	return appStyle.Render(content)
+	return tea.View{
+		Content:   appStyle.Render(content),
+		AltScreen: true,
+	}
 }
